@@ -1,0 +1,107 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String           @id @default(cuid())
+  email           String           @unique
+  name            String?
+  passwordHash    String?
+  image           String?
+  resumes         Resume[]
+  jobDescriptions JobDescription[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  accounts        Account[]
+  sessions        Session[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Resume {
+  id               String         @id @default(cuid())
+  userId           String
+  title            String
+  templateId       String         @default("modern")
+  personalInfo     Json
+  summary          String?        @db.Text
+  experience       Json           @default("[]")
+  education        Json           @default("[]")
+  skills           Json           @default("[]")
+  projects         Json?
+  certifications   Json?
+  languages        Json?
+  customSections   Json?
+  editorState      Json?
+  colorScheme      Json?
+  fontConfig       Json?
+  targetJobId      String?
+  atsScore         Int?
+  lastAiSuggestion Json?
+  isPublic         Boolean        @default(false)
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  targetJob        JobDescription? @relation(fields: [targetJobId], references: [id])
+  versions         ResumeVersion[]
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+}
+
+model ResumeVersion {
+  id        String   @id @default(cuid())
+  resumeId  String
+  data      Json
+  label     String?
+  resume    Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+model JobDescription {
+  id         String   @id @default(cuid())
+  userId     String
+  title      String
+  company    String?
+  url        String?
+  rawText    String   @db.Text
+  parsedData Json?
+  resumes    Resume[]
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
